@@ -1,22 +1,30 @@
 import jwt from 'jsonwebtoken';
+import { Response } from 'express';
 import { Globals } from '../shared/globals';
 import { TypeGuards } from '../shared/typeGuards';
 import { Users } from '../dbConnect';
-import { TUserCredits } from '../models/User';
+import { TUser, TUserCredits } from '../models/User';
+import { TServiceActionResponse } from '../shared/types';
+import { Utils } from '../shared/utils';
 
 export class AuthService {
-  async getUserByToken(token: string) {
+  async getUserByToken(
+    res: Response,
+    token: string,
+  ): Promise<TServiceActionResponse<TUser>> {
     const payload = jwt.verify(token, Globals.SECRET);
     if (!TypeGuards.isJWTPayload(payload)) {
-      return null;
+      Utils.error(res, 500, 'JWT');
+      return { success: false };
     }
 
     const { iat, exp, ...user } = payload;
     if (!TypeGuards.isUser(user)) {
-      return null;
+      Utils.error(res, 500, 'Получение пользователя из куки');
+      return { success: false };
     }
 
-    return user;
+    return { success: true, data: user };
   }
 
   private async getUserByCredits({ login, password }: TUserCredits) {
@@ -33,12 +41,16 @@ export class AuthService {
     return user;
   }
 
-  async login(credits: TUserCredits) {
+  async login(
+    res: Response,
+    credits: TUserCredits,
+  ): Promise<TServiceActionResponse<{ user: TUser; token: string }>> {
     const user = await this.getUserByCredits(credits);
     if (!user) {
-      return null;
+      Utils.error(res, 404, 'пользователь')
+      return { success: false };
     }
     const token = jwt.sign(user, Globals.SECRET, { expiresIn: '48h' });
-    return { user, token };
+    return { success: true, data: { user, token } };
   }
 }

@@ -1,20 +1,32 @@
 import { string, z } from 'zod';
 import { Role } from './enums/RoleEnum';
-import { Dictionary } from './_base';
+import { Dictionary, Identifiable } from './_base';
 import { longString, smallString } from '../shared/dataTypes';
 
-export const User = Dictionary.extend({
-  login: smallString(),
+const UserLogin = z.object({
+  login: longString(),
+});
+
+const UserPassword = z.object({
+  password: string(),
+});
+
+export const User = Dictionary.merge(UserLogin).extend({
   surname: smallString(),
   middlename: smallString().optional(),
   role: z.nativeEnum(Role),
 });
 
-export const UserCredits = z.object({
-  login: longString(),
-  password: string(),
-});
+export const UserCredits = UserLogin.merge(UserPassword);
+
+export const UserCreateDto = User.omit({ id: true }).merge(UserPassword);
+
+export const UserUpdateDto = User.partial().merge(Identifiable);
+
+export type TUser = z.infer<typeof User>;
 
 export type TUserCredits = z.infer<typeof UserCredits>;
 
-export type TUser = z.infer<typeof User>
+export type TUserCreateDto = z.infer<typeof UserCreateDto>;
+
+export type TUserUpdateDto = z.infer<typeof UserUpdateDto>;

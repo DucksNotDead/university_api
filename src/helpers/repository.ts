@@ -1,16 +1,13 @@
 import { PoolClient } from 'pg';
 import { DBPool } from '../dbConnect';
 import { TIdentifiable } from '../models/_base';
+import { TPagination } from '../models/FiltersAndPagination';
+import { Utils } from '../shared/utils';
 
-interface IRepositoryFilter {
+interface IRepositorySubQuery {
   select?: string;
-  joins?: string[]; //table_name as tn
+  joins?: string[][]; //table_name as tn
   where?: string; //main.prop = tn.prop
-}
-
-interface IRepositoryPagination {
-  pageSize?: number;
-  pageIndex?: number;
 }
 
 export class Repository<T extends TIdentifiable> {
@@ -37,14 +34,14 @@ export class Repository<T extends TIdentifiable> {
     this.client = null;
   }
 
-  async getAll(filter?: IRepositoryFilter & IRepositoryPagination) {
+  async getAll(filter?: IRepositorySubQuery & TPagination['pagination']) {
     const pageSize = filter?.pageSize ?? this.DEFAULT_PAGE_SIZE;
 
     const query = `
         SELECT ${filter?.select ?? '*'} 
         FROM ${this.tableName} as main
-        ${filter?.joins?.join(' ') ?? ''}
-        WHERE ${filter?.where ?? '1 = 1'}
+        ${filter?.joins?.map((pair) => 'LEFT JOIN ' + pair.join(' as ')).join(' ') ?? ''}
+        WHERE ${filter?.where?.length ? filter.where : '1 = 1'}
         ORDER BY main.id
         LIMIT ${pageSize} OFFSET (${filter?.pageIndex ?? 0}) * ${pageSize}
         ;`;
@@ -58,12 +55,13 @@ export class Repository<T extends TIdentifiable> {
     }
   }
 
-  async get(id: number|null, filter?: IRepositoryFilter) {
+  async get(id: number | null, filter?: IRepositorySubQuery) {
     return (
       (
         await this.getAll({
           ...filter,
-          where: `${id? `main.id = ${id}` : '1 = 1'} ${filter?.where ? 'AND ' + filter?.where : ''}`,
+          where: `${id ? `main.id = ${id}` : '1 = 1'} ${filter?.where ? 'AND ' + filter?.where : ''}`,
+          pageSize: 1,
         })
       )?.[0] ?? null
     );
@@ -71,7 +69,9 @@ export class Repository<T extends TIdentifiable> {
 
   async add<DTO extends Omit<T, 'id'>>(item: DTO) {
     const columnNames = Object.keys(item).join(', ');
-    const values = Object.values(item);
+    const values = Object.values(item).map((v) =>
+      typeof v === 'string' ? Utils.toQuoteless(v) : v,
+    );
     const valueIndexes = Array.from(Array(values.length), (_, i) => `$${i + 1}`).join(
       ',',
     );
@@ -95,6 +95,11 @@ export class Repository<T extends TIdentifiable> {
   }
 
   async remove(id: number, subquery?: string) {
+    const itemExist = await this.get(id);
+    if (!itemExist) {
+      return false;
+    }
+
     const query = `
         DELETE FROM ${this.tableName} as main
         WHERE main.id = ${id} ${subquery ? 'AND ' + subquery : ''}
@@ -114,7 +119,9 @@ export class Repository<T extends TIdentifiable> {
   async update(item: Partial<Omit<T, 'id'>> & TIdentifiable, subquery?: string) {
     const { id, ...props } = item;
     const columnNames = Object.keys(props);
-    const values = Object.values(props);
+    const values = Object.values(props).map((v) =>
+      typeof v === 'string' ? Utils.toQuoteless(v) : v,
+    );
     const setters = columnNames
       .map((column, index) => `${column} = $${index + 1}`)
       .join(', ');
@@ -127,10 +134,14 @@ export class Repository<T extends TIdentifiable> {
         ;`;
 
     try {
-      return await this.client!.query({
-        text: query,
-        values,
-      });
+      return (
+        (
+          await this.client!.query<T>({
+            text: query,
+            values,
+          })
+        ).rows[0] ?? null
+      );
     } catch (e) {
       this.errorLog('update', e, query);
       return null;

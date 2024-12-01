@@ -8,23 +8,23 @@ import { UserCredits } from '../models/User';
 
 const authService = new AuthService();
 
-@Controller('/auth')
+@Controller('/auth', 'User')
 export class AuthController {
   @Route('Post', '/login')
   async login({ res, body }: IArgs): Promise<any> {
-    const credits = body(UserCredits);
-    if (!credits) {
+    const { success, data: credits } = body(UserCredits);
+    if (!success) {
       return;
     }
 
-    const check = await authService.login(credits);
-    if (!check) {
-      return Utils.error(res, 404);
+    const check = await authService.login(res, credits);
+    if (!check.success) {
+      return;
     }
-    const { user, token } = check;
+    const { user, token } = check.data;
 
     res.cookie(Globals.AUTH_COOKIE, token);
-    return res.json({ user, token });
+    return Utils.success(res, { user, token });
   }
 
   @Route('Post', '/')
@@ -34,17 +34,17 @@ export class AuthController {
       return Utils.error(res, 401);
     }
 
-    const user = await authService.getUserByToken(token);
-    if (!user) {
-      return Utils.error(res, 401);
+    const user = await authService.getUserByToken(res, token);
+    if (!user.success) {
+      return;
     }
 
-    return res.json({ user });
+    return Utils.success(res, user.data);
   }
 
   @Route('Post', '/logout')
   async logout({ res }: IArgs): Promise<any> {
     res.clearCookie(Globals.AUTH_COOKIE);
-    return res.json('logout success');
+    return Utils.success(res, 'logout success');
   }
 }
