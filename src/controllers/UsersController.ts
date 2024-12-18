@@ -1,17 +1,11 @@
-import { Controller } from '../helpers/decorators/controller';
-import { CRUD } from '../helpers/crud';
-import { TUser, UserCreateDto, UserUpdateDto } from '../models/User';
-import { Users } from '../dbConnect';
+import { Controller } from '../shared/helpers/decorators/controller';
+import { UserCreateDto, UserUpdateDto } from '../models/User';
+import { Users } from '../db';
 
-@Controller('/users', 'Admin')
-export class UsersController extends CRUD<TUser> {
-  constructor() {
-    super({
-      repository: Users,
-      createDto: UserCreateDto,
-      updateDto: UserUpdateDto,
-      mainProp: 'login',
-      searchProps: ['login', 'name', 'surname', 'middlename'],
-    });
-  }
-}
+@Controller('/users', 'Admin', {
+  repository: Users,
+  get: { searchBy: ['login', 'name', 'surname', 'middlename'] },
+  create: { dto: UserCreateDto },
+  update: { dto: UserUpdateDto },
+})
+export default class {}

@@ -2,29 +2,30 @@ import jwt from 'jsonwebtoken';
 import { Response } from 'express';
 import { Globals } from '../shared/globals';
 import { TypeGuards } from '../shared/typeGuards';
-import { Users } from '../dbConnect';
+import { Users } from '../db';
 import { TUser, TUserCredits } from '../models/User';
 import { TServiceActionResponse } from '../shared/types';
 import { Utils } from '../shared/utils';
 
 export class AuthService {
   async getUserByToken(
-    res: Response,
     token: string,
   ): Promise<TServiceActionResponse<TUser>> {
-    const payload = jwt.verify(token, Globals.SECRET);
-    if (!TypeGuards.isJWTPayload(payload)) {
-      Utils.error(res, 500, 'JWT');
+    try {
+      const payload = jwt.verify(token, Globals.SECRET);
+      if (!TypeGuards.isJWTPayload(payload)) {
+        return { success: false };
+      }
+
+      const { iat, exp, ...user } = payload;
+      if (!TypeGuards.isUser(user)) {
+        return { success: false };
+      }
+
+      return { success: true, data: user };
+    } catch (error) {
       return { success: false };
     }
-
-    const { iat, exp, ...user } = payload;
-    if (!TypeGuards.isUser(user)) {
-      Utils.error(res, 500, 'Получение пользователя из куки');
-      return { success: false };
-    }
-
-    return { success: true, data: user };
   }
 
   private async getUserByCredits({ login, password }: TUserCredits) {

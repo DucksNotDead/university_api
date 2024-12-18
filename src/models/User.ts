@@ -15,6 +15,7 @@ export const User = Dictionary.merge(UserLogin).extend({
   surname: smallString(),
   middlename: smallString().optional(),
   role: z.nativeEnum(Role),
+  department_id: z.number().nullable()
 });
 
 export const UserCredits = UserLogin.merge(UserPassword);

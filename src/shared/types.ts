@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
 import { z, ZodObject, ZodOptional, ZodRawShape } from 'zod';
 import { TIdentifiable } from '../models/_base';
-import { CRUD } from '../helpers/crud';
+import { TUser } from '../models/User';
+import { Role } from '../models/enums/RoleEnum';
+
+export interface IScope {
+  joins?: [string, string, string][]; //table_name as tn on tn.prop = ... -> ['table_name', 'tn', 'tn.prop = ...']
+  where?: string; //main.prop = tn.prop
+}
 
 export interface IArgs<T extends TIdentifiable = any> {
   body: <T extends ZodObject<ZodRawShape>>(
@@ -11,13 +17,21 @@ export interface IArgs<T extends TIdentifiable = any> {
   query: Request['query'];
   res: Response;
   req: Request;
-  context: CRUD<T>
+  user: TUser | null;
 }
 
 export type TMethod = 'Get' | 'Post' | 'Put' | 'Delete';
 
-export type TAction = (req: Request, res: Response) => Promise<any>;
+export type TScopeFn = (args: IArgs) => IScope;
 
-export type TRouteAction = [TMethod, string, TAction];
+export type TScopeFilterFn = (args: IArgs) => { prop: string; scope: IScope };
+
+export interface IRouteInfo {
+  method: TMethod;
+  path: string;
+  isPublic: boolean;
+  role?: keyof typeof Role;
+  context?: object;
+}
 
 export type TServiceActionResponse<T> = { success: false } | { success: true; data: T };

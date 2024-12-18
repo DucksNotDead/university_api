@@ -1,11 +1,6 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { Router } from './helpers/router';
-import { AuthController } from './controllers/AuthController';
-import { UsersController } from './controllers/UsersController';
-import { FacultiesController } from './controllers/FacultiesController';
-import { DepartmentsController } from './controllers/DepartmentsController';
-import { DisciplinesController } from './controllers/DisciplinesController';
+import { setupControllers } from './setupControllers';
 
 const app = express();
 const PORT = 8080;
@@ -13,13 +8,7 @@ const PORT = 8080;
 app.use(express.json());
 app.use(cookieParser());
 
-new Router(
-  AuthController,
-  UsersController,
-  FacultiesController,
-  DepartmentsController,
-  DisciplinesController,
-).init(app);
+setupControllers(app)
 
 // Запуск сервер
 app.listen(PORT, async () => {

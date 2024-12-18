@@ -1,13 +1,12 @@
 import { PoolClient } from 'pg';
-import { DBPool } from '../dbConnect';
-import { TIdentifiable } from '../models/_base';
-import { TPagination } from '../models/FiltersAndPagination';
-import { Utils } from '../shared/utils';
+import { DBPool } from '../../db';
+import { TIdentifiable } from '../../models/_base';
+import { TPagination } from '../../models/FiltersAndPagination';
+import { Utils } from '../utils';
+import { IScope } from '../types';
 
-interface IRepositorySubQuery {
+interface IRepositorySubQuery extends IScope {
   select?: string;
-  joins?: string[][]; //table_name as tn
-  where?: string; //main.prop = tn.prop
 }
 
 export class Repository<T extends TIdentifiable> {
@@ -40,7 +39,7 @@ export class Repository<T extends TIdentifiable> {
     const query = `
         SELECT ${filter?.select ?? '*'} 
         FROM ${this.tableName} as main
-        ${filter?.joins?.map((pair) => 'LEFT JOIN ' + pair.join(' as ')).join(' ') ?? ''}
+        ${filter?.joins?.map(([table, name, cond]) => `LEFT JOIN ${table} as ${name} on ${cond}`).join(' ') ?? ''}
         WHERE ${filter?.where?.length ? filter.where : '1 = 1'}
         ORDER BY main.id
         LIMIT ${pageSize} OFFSET (${filter?.pageIndex ?? 0}) * ${pageSize}
@@ -69,7 +68,7 @@ export class Repository<T extends TIdentifiable> {
 
   async add<DTO extends Omit<T, 'id'>>(item: DTO) {
     const columnNames = Object.keys(item).join(', ');
-    const values = Object.values(item).map((v) =>
+    const values = Object.values(item).map((v: any) =>
       typeof v === 'string' ? Utils.toQuoteless(v) : v,
     );
     const valueIndexes = Array.from(Array(values.length), (_, i) => `$${i + 1}`).join(
@@ -119,7 +118,7 @@ export class Repository<T extends TIdentifiable> {
   async update(item: Partial<Omit<T, 'id'>> & TIdentifiable, subquery?: string) {
     const { id, ...props } = item;
     const columnNames = Object.keys(props);
-    const values = Object.values(props).map((v) =>
+    const values = Object.values(props).map((v: any) =>
       typeof v === 'string' ? Utils.toQuoteless(v) : v,
     );
     const setters = columnNames

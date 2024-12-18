@@ -3,5 +3,7 @@ export const Globals = {
   ROLE_HEADER: 'ROLE_NAME',
   SECRET: 'SECRET',
 
-  ROUTE_ACTIONS: 'ROUTE_ACTIONS',
-};
+  ROUTE_INFO: 'ROUTE_INFO',
+
+  IS_ALL_GET_PUBLIC: true
+} as const;

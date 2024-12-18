@@ -1,17 +1,10 @@
-import { Controller } from '../helpers/decorators/controller';
-import { FacultyCreateDto, FacultyUpdateDto, TFaculty } from '../models/Faculty';
-import { CRUD } from '../helpers/crud';
-import { Faculties } from '../dbConnect';
+import { Controller } from '../shared/helpers/decorators/controller';
+import { Faculties } from '../db';
+import { FacultyCreateDto, FacultyUpdateDto } from '../models/Faculty';
 
-@Controller('/faculties', 'Admin')
-export class FacultiesController extends CRUD<TFaculty> {
-  constructor() {
-    super({
-      repository: Faculties,
-      createDto: FacultyCreateDto,
-      updateDto: FacultyUpdateDto,
-      mainProp: 'name',
-      searchProps: ['name'],
-    });
-  }
-}
+@Controller('/faculties', 'Admin', {
+  repository: Faculties,
+  create: { dto: FacultyCreateDto },
+  update: { dto: FacultyUpdateDto },
+})
+export default class {}

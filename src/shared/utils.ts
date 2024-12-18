@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Errors } from './errors';
 import { TFilters } from '../models/FiltersAndPagination';
-import { Result } from '../helpers/result';
+import { Result } from './helpers/result';
 
 export const Utils = {
   toQuoteless(str: string): string {
@@ -11,9 +11,14 @@ export const Utils = {
     return res.status(200).json(new Result({ data }));
   },
   error(res: Response, status: keyof typeof Errors, message?: string) {
-    return res
-      .status(status)
-      .json(new Result({ error: `${Errors[status]}${message ? `. ${message}` : ''}` }));
+    return res.status(status).json(
+      new Result({
+        error: {
+          code: status,
+          text: `${Errors[status]}${message ? `. ${message}` : ''}`,
+        },
+      }),
+    );
   },
   parseFilters<T extends TFilters['filters']>(
     filters: T,
@@ -32,7 +37,7 @@ export const Utils = {
       } else {
         if (typeof filters[param] === 'string') {
           result.push(`${param} ~* '${filters[param]}'`);
-        } else {
+        } else if (typeof filters[param] === 'number') {
           result.push(`${param} = ${filters[param]}`);
         }
       }

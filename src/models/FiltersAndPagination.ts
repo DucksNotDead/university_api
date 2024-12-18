@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+const Filter = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]));
+
 export const Filters = z.object({
-  filters: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+  filters: Filter.optional(),
 });
 
 export const Pagination = z.object({
@@ -16,6 +18,8 @@ export const Pagination = z.object({
 export const FiltersAndPagination = Filters.merge(Pagination).optional();
 
 export type TPagination = z.infer<typeof Pagination>;
+
+export type TFilter = z.infer<typeof Filter>;
 
 export type TFilters = z.infer<typeof Filters>;
 
