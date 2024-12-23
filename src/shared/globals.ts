@@ -4,6 +4,7 @@ export const Globals = {
   SECRET: 'SECRET',
 
   ROUTE_INFO: 'ROUTE_INFO',
+  ROLE_INFO: 'ROLES_INFO',
 
   IS_ALL_GET_PUBLIC: true
 } as const;

@@ -15,14 +15,13 @@ export const User = Dictionary.merge(UserLogin).extend({
   surname: smallString(),
   middlename: smallString().optional(),
   role: z.nativeEnum(Role),
-  department_id: z.number().nullable()
 });
 
 export const UserCredits = UserLogin.merge(UserPassword);
 
 export const UserCreateDto = User.omit({ id: true }).merge(UserPassword);
 
-export const UserUpdateDto = User.partial().merge(Identifiable);
+export const UserUpdateDto = UserCreateDto.partial().merge(Identifiable);
 
 export type TUser = z.infer<typeof User>;
 

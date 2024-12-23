@@ -8,4 +8,12 @@ export const AcademicLoad = Identifiable.extend({
   volume: number3(),
 });
 
+export const AcademicLoadCreateDto = AcademicLoad.omit({ id: true });
+
+export const AcademicLoadUpdateDto = AcademicLoadCreateDto.partial().merge(Identifiable);
+
 export type TAcademicLoad = z.infer<typeof AcademicLoad>;
+
+export type TAcademicLoadCreateDto = z.infer<typeof AcademicLoadCreateDto>;
+
+export type TAcademicLoadUpdateDto = z.infer<typeof AcademicLoadUpdateDto>;

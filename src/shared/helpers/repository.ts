@@ -1,7 +1,6 @@
 import { PoolClient } from 'pg';
 import { DBPool } from '../../db';
 import { TIdentifiable } from '../../models/_base';
-import { TPagination } from '../../models/FiltersAndPagination';
 import { Utils } from '../utils';
 import { IScope } from '../types';
 
@@ -12,8 +11,6 @@ interface IRepositorySubQuery extends IScope {
 export class Repository<T extends TIdentifiable> {
   private tableName = '';
   private client: PoolClient | null = null;
-
-  private readonly DEFAULT_PAGE_SIZE = 10;
 
   constructor(table_name: string) {
     this.tableName = table_name;
@@ -33,16 +30,28 @@ export class Repository<T extends TIdentifiable> {
     this.client = null;
   }
 
-  async getAll(filter?: IRepositorySubQuery & TPagination['pagination']) {
-    const pageSize = filter?.pageSize ?? this.DEFAULT_PAGE_SIZE;
-
+  async getAll(filter?: IRepositorySubQuery) {
     const query = `
         SELECT ${filter?.select ?? '*'} 
+        ${filter?.joins?.map(([table, name, cond]) => {
+          let selectQuery = `row_to_json(${name})`
+          let fromName = name
+          let asName = name
+          if (name.includes('.')) {
+            const [tableName, propName] = name.split('.')
+            selectQuery = name
+            fromName = tableName
+            asName = `${tableName}_${propName}`
+          }
+          return `,(
+            SELECT ${selectQuery}
+            FROM ${table} as ${fromName}
+            WHERE ${cond}
+          ) as ${asName}`
+        }) ?? ''}
         FROM ${this.tableName} as main
-        ${filter?.joins?.map(([table, name, cond]) => `LEFT JOIN ${table} as ${name} on ${cond}`).join(' ') ?? ''}
         WHERE ${filter?.where?.length ? filter.where : '1 = 1'}
         ORDER BY main.id
-        LIMIT ${pageSize} OFFSET (${filter?.pageIndex ?? 0}) * ${pageSize}
         ;`;
 
     try {
@@ -60,7 +69,6 @@ export class Repository<T extends TIdentifiable> {
         await this.getAll({
           ...filter,
           where: `${id ? `main.id = ${id}` : '1 = 1'} ${filter?.where ? 'AND ' + filter?.where : ''}`,
-          pageSize: 1,
         })
       )?.[0] ?? null
     );

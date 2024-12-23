@@ -1,5 +1,8 @@
-import { IArgs, IScope, TScopeFilterFn, TScopeFn, TServiceActionResponse } from '../types';
-import { FiltersAndPagination, TFiltersAndPagination } from '../../models/FiltersAndPagination';
+import { IArgs, TScopeFn, TServiceActionResponse } from '../types';
+import {
+  FiltersAndPagination,
+  TFiltersAndPagination,
+} from '../../models/FiltersAndPagination';
 import { Utils } from '../utils';
 import { z } from 'zod';
 import { Repository } from './repository';
@@ -8,11 +11,9 @@ import { Response } from 'express';
 
 export interface ICrudProps<T extends TIdentifiable> {
   repository: Repository<T>;
-  get?: { searchBy?: (keyof T)[] | null; scopeFilterFn?: TScopeFilterFn } | null;
-  create?: {
-    dto: z.infer<any>;
-    findSameBy?: string | null;
-  } | null;
+  get?: { extraProps: (keyof T)[] } | null;
+  create?: { dto: z.infer<any>; findSameBy?: string | null } | null;
+  getItem?: { title: { key?: keyof T; prefix?: string } };
   update?: { dto: z.infer<any>; scopeFn?: TScopeFn } | null;
   delete?: { where?: string } | null;
 }
@@ -20,6 +21,7 @@ export interface ICrudProps<T extends TIdentifiable> {
 export class CRUD<T extends TIdentifiable> {
   repository: Repository<T> | null = null;
   getProps?: ICrudProps<T>['get'];
+  getItemProps?: ICrudProps<T>['getItem'];
   createProps?: ICrudProps<T>['create'];
   updateProps?: ICrudProps<T>['update'];
   deleteProps?: ICrudProps<T>['delete'];
@@ -27,6 +29,7 @@ export class CRUD<T extends TIdentifiable> {
   constructor(properties: ICrudProps<T>) {
     this.repository = properties.repository;
     this.getProps = properties.get;
+    this.getItemProps = properties.getItem;
     this.createProps = properties.create;
     this.updateProps = properties.update;
     this.deleteProps = properties.delete;
@@ -50,6 +53,26 @@ export class CRUD<T extends TIdentifiable> {
       } catch (err) {
         return Utils.error(res, 500, 'server error');
       }
+    }
+  }
+
+  async getItem({ res, params }: IArgs<T>) {
+    if (this.getItemProps) {
+      const id = Number(params.id);
+
+      if (!id) {
+        return Utils.error(res, 400, 'id');
+      }
+
+      const item = await this.serviceGetItem(id);
+
+      if (!item.success) {
+        return Utils.error(res, 400, 'item');
+      }
+
+      const { data } = item;
+
+      return Utils.success(res, { ...data, entityTitle: this.getItemProps.title });
     }
   }
 
@@ -116,27 +139,12 @@ export class CRUD<T extends TIdentifiable> {
   ): Promise<TServiceActionResponse<T[]>> {
     const { filters, pagination } = filtersAndPagination!;
 
-    const where = Utils.parseFilters(
-      filters,
-      this.getProps?.searchBy !== null
-        ? ((this.getProps?.searchBy as string[]) ?? ['name'])
-        : undefined,
-    );
-
-    let queryScope: IScope = {}
-    const scopeFilter = this.getProps?.scopeFilterFn?.(args)
-    if (scopeFilter) {
-      const {scope, prop} = scopeFilter
-      if (filters?.[prop] === true) {
-        queryScope = scope
-      }
-    }
+    const where = Utils.parseFilters(filters);
 
     await this.repository?.startSession();
     const entities = await this.repository?.getAll({
       where,
       ...pagination,
-      ...queryScope,
     });
     this.repository?.endSession();
 
@@ -145,7 +153,27 @@ export class CRUD<T extends TIdentifiable> {
       return { success: false };
     }
 
+    if (this.getProps?.extraProps) {
+      entities.forEach((entity) => {
+        this.getProps?.extraProps.forEach((prop) => {
+          delete entity[prop];
+        });
+      });
+    }
+
     return { success: true, data: entities };
+  }
+
+  private async serviceGetItem(id: number): Promise<TServiceActionResponse<T>> {
+    await this.repository?.startSession();
+    const item = await this.repository?.get(id);
+    this.repository?.endSession();
+
+    if (!item) {
+      return { success: false };
+    }
+
+    return { success: true, data: item };
   }
 
   private async serviceCreate(

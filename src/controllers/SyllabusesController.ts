@@ -1,32 +1,29 @@
 import { Controller } from '../shared/helpers/decorators/controller';
-import { Syllabuses } from '../db';
-import { IArgs, TScopeFn } from '../shared/types';
-import { SyllabusCreateDto, SyllabusUpdateDto } from '../models/Syllabus';
 import { Route } from '../shared/helpers/decorators/route';
+import { IArgs } from '../shared/types';
 import { Utils } from '../shared/utils';
-
-const scopeFn: TScopeFn = ({ user }) => ({
-  joins: [['disciplines', 'd', 'd.id = main.discipline_id']],
-  where: `d.department_id = ${user?.department_id}`,
-});
+import { Syllabuses } from '../db';
+import { SyllabusCreateDto, SyllabusUpdateDto } from '../models/Syllabus';
 
 @Controller('/syllabuses', 'Teacher', {
   repository: Syllabuses,
-  get: { searchBy: null },
+  getItem: { title: { key: 'id', prefix: 'Учебная программа' } },
   create: { dto: SyllabusCreateDto },
-  update: { dto: SyllabusUpdateDto, scopeFn },
+  update: { dto: SyllabusUpdateDto },
+  get: null,
 })
 export default class {
-  @Route('Get', '/:id', { isPublic: true })
-  async getItem({ params, res }:IArgs) {
-    const id = Number(params['id'])
-
-    const syllabus = await Syllabuses.get(id)
-
-    if (!syllabus) {
-      return Utils.error(res, 404, `id: ${id}`);
+  @Route('Get', '/', { isPublic: true })
+  async getAll({ body, res }: IArgs) {
+    await Syllabuses.startSession();
+    const entities = await Syllabuses.getAll({
+      joins: [['disciplines', 'discipline.name', 'discipline.id = main.discipline_id']],
+    });
+    Syllabuses.endSession();
+    if (!entities) {
+      return Utils.error(res, 404);
     }
 
-    return Utils.success(res, syllabus)
+    return Utils.success(res, entities);
   }
 }

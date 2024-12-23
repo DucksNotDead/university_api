@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const Department = Dictionary.extend({
   faculty_id: z.number(),
-  head_id: z.number(),
+  head_id: z.number().nullable(),
 });
 
 export const DepartmentCreateDto = Department.omit({ id: true });

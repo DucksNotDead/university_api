@@ -21,22 +21,23 @@ export function Controller<T extends TIdentifiable>(
     if (crudProps) {
       const crud = new CRUD(crudProps);
 
-      const crudRoutes: Record<TMethod, keyof typeof crud> = {
-        Get: 'getAll',
-        Post: 'create',
-        Put: 'update',
-        Delete: 'delete',
+      const crudRoutes: Partial<Record<keyof typeof crud, TMethod>> = {
+        getAll: 'Get',
+        getItem: 'Get',
+        create: 'Post',
+        update: 'Put',
+        delete: 'Delete',
       } as const;
 
-      for (const method in crudRoutes) {
-        const actionName = crudRoutes[method as keyof typeof crudRoutes];
+      for (const actionName in crudRoutes) {
+        const method = crudRoutes[actionName as keyof typeof crud];
         if (proto[actionName] && proto[actionName][Globals.ROUTE_INFO]) {
           continue;
         }
-        proto[actionName] = crud[actionName];
+        proto[actionName] = crud[actionName as keyof typeof crud];
         proto[actionName][Globals.ROUTE_INFO] = {
-          method,
-          path: `/${method === 'Delete' ? ':id' : ''}`,
+          method: method,
+          path: `/${actionName === 'getItem' || actionName === 'delete' ? ':id' : method === 'Post' ? 'create' : ''}`,
           isPublic: Globals.IS_ALL_GET_PUBLIC && method === 'Get',
           context: crud,
         } as IRouteInfo;
@@ -47,7 +48,8 @@ export function Controller<T extends TIdentifiable>(
 
     console.log(rootPath, needRole);
     for (const key of Object.getOwnPropertyNames(proto)) {
-      const routeInfo: IRouteInfo = instance[key as keyof typeof instance]?.[Globals.ROUTE_INFO];
+      const routeInfo: IRouteInfo =
+        instance[key as keyof typeof instance]?.[Globals.ROUTE_INFO];
 
       if (routeInfo) {
         (controllerRouter as any)[routeInfo.method.toLowerCase()](
@@ -60,12 +62,17 @@ export function Controller<T extends TIdentifiable>(
             const isAdmin = user.success && user.data.role === Role.Admin;
 
             if (!routeInfo.isPublic) {
-              if (!user.success || !isAdmin || user.data.role !== Role[routeInfo.role ?? needRole]) {
+              if (
+                !isAdmin &&
+                !(user.success && user.data.role !== (routeInfo.role ?? needRole))
+              ) {
                 return Utils.error(res, 403);
               }
             }
 
             const { body, params, query } = req;
+
+            (res as any)[Globals.ROLE_INFO] = routeInfo.role ?? needRole
 
             const getBody: IArgs['body'] = (model) => {
               const { success, error, data } = model.safeParse(body);

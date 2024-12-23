@@ -15,7 +15,7 @@ export const Pagination = z.object({
     .optional(),
 });
 
-export const FiltersAndPagination = Filters.merge(Pagination).optional();
+export const FiltersAndPagination = Filters.merge(Pagination).partial();
 
 export type TPagination = z.infer<typeof Pagination>;
 

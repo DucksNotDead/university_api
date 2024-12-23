@@ -1,10 +1,10 @@
 import { Controller } from '../shared/helpers/decorators/controller';
 import { Specialities } from '../db';
-import { StandardCreateDto, StandardUpdateDto } from '../models/Standard';
+import { SpecialityCreateDto, SpecialityUpdateDto } from '../models/Speciality';
 
 @Controller('/specialities', 'EducationDepartmentEmployee', {
   repository: Specialities,
-  create: { dto: StandardCreateDto },
-  update: { dto: StandardUpdateDto },
+  create: { dto: SpecialityCreateDto },
+  update: { dto: SpecialityUpdateDto },
 })
 export default class {}

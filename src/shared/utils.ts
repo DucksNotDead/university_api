@@ -2,13 +2,16 @@ import { Response } from 'express';
 import { Errors } from './errors';
 import { TFilters } from '../models/FiltersAndPagination';
 import { Result } from './helpers/result';
+import { Globals } from './globals';
 
 export const Utils = {
   toQuoteless(str: string): string {
     return str.replace(/'/g, '');
   },
   success(res: Response, data: any) {
-    return res.status(200).json(new Result({ data }));
+    return res
+      .status(200)
+      .json(new Result({ data, role: (res as any)[Globals.ROLE_INFO] }));
   },
   error(res: Response, status: keyof typeof Errors, message?: string) {
     return res.status(status).json(

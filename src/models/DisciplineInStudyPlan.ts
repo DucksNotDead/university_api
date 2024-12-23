@@ -11,4 +11,17 @@ export const DisciplineInStudyPlan = Identifiable.extend({
   hours: number3(),
 });
 
+export const DisciplineInStudyPlanCreateDto = DisciplineInStudyPlan.omit({ id: true });
+
+export const DisciplineInStudyPlanUpdateDto =
+  DisciplineInStudyPlanCreateDto.partial().merge(Identifiable);
+
 export type TDisciplineInStudyPlan = z.infer<typeof DisciplineInStudyPlan>;
+
+export type TDisciplineInStudyPlanCreateDto = z.infer<
+  typeof DisciplineInStudyPlanCreateDto
+>;
+
+export type TDisciplineInStudyPlanUpdateDto = z.infer<
+  typeof DisciplineInStudyPlanUpdateDto
+>;
