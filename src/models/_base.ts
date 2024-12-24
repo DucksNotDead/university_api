@@ -1,16 +1,15 @@
 import { z } from 'zod';
-import { longString } from '../shared/dataTypes';
 
 export const Identifiable = z.object({
   id: z.number(),
 });
 
 export const Dictionary = Identifiable.extend({
-  name: longString(),
+  name: z.string(),
 });
 
 export const Content = z.object({
-  title: longString(),
+  title: z.string(),
   text: z.string(),
 });
 

@@ -1,10 +1,9 @@
 import { Dictionary, Identifiable } from './_base';
-import { number, z } from 'zod';
-import { longString } from '../shared/dataTypes';
+import { z } from 'zod';
 
 export const Speciality = Dictionary.extend({
-  faculty_id: number(),
-  direction: longString(),
+  faculty_id: z.number(),
+  direction: z.string(),
 });
 
 export const SpecialityCreateDto = Speciality.omit({ id: true });

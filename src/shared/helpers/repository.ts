@@ -30,26 +30,30 @@ export class Repository<T extends TIdentifiable> {
     this.client = null;
   }
 
+  async query(query: string) {
+    return await this.client?.query<T[]>(query);
+  }
+
   async getAll(filter?: IRepositorySubQuery) {
+    const joinSelects: string[] = [];
+    const joins: string[] = [];
+    for (const [table, name, cond] of filter?.joins ?? []) {
+      if (name.includes('.')) {
+        const [tableName, propName] = name.split('.');
+        const separatedName = `${tableName}_${propName}`;
+        joinSelects.push(`,${name} AS ${separatedName}`);
+        joins.push(`JOIN ${table} AS ${tableName} ON ${cond}`);
+      } else {
+        joinSelects.push(`,row_to_json(${name}) AS ${name}`);
+        joins.push(`FROM ${table} AS ${name} ON ${cond}`);
+      }
+    }
+
     const query = `
-        SELECT ${filter?.select ?? '*'} 
-        ${filter?.joins?.map(([table, name, cond]) => {
-          let selectQuery = `row_to_json(${name})`
-          let fromName = name
-          let asName = name
-          if (name.includes('.')) {
-            const [tableName, propName] = name.split('.')
-            selectQuery = name
-            fromName = tableName
-            asName = `${tableName}_${propName}`
-          }
-          return `,(
-            SELECT ${selectQuery}
-            FROM ${table} as ${fromName}
-            WHERE ${cond}
-          ) as ${asName}`
-        }) ?? ''}
+        SELECT ${filter?.select ?? 'main.*'} 
+        ${joinSelects.join('')}
         FROM ${this.tableName} as main
+        ${joins.join(' ')}
         WHERE ${filter?.where?.length ? filter.where : '1 = 1'}
         ORDER BY main.id
         ;`;

@@ -11,9 +11,10 @@ import { Response } from 'express';
 
 export interface ICrudProps<T extends TIdentifiable> {
   repository: Repository<T>;
-  get?: { extraProps: (keyof T)[] } | null;
+  getPostProcess?: (entities: T[]) => any[];
+  get?: { extraProps?: (keyof T)[] } | null;
   create?: { dto: z.infer<any>; findSameBy?: string | null } | null;
-  getItem?: { title: { key?: keyof T; prefix?: string } };
+  getItem?: null;
   update?: { dto: z.infer<any>; scopeFn?: TScopeFn } | null;
   delete?: { where?: string } | null;
 }
@@ -25,6 +26,7 @@ export class CRUD<T extends TIdentifiable> {
   createProps?: ICrudProps<T>['create'];
   updateProps?: ICrudProps<T>['update'];
   deleteProps?: ICrudProps<T>['delete'];
+  getPostProcess?: ICrudProps<T>['getPostProcess'];
 
   constructor(properties: ICrudProps<T>) {
     this.repository = properties.repository;
@@ -33,6 +35,7 @@ export class CRUD<T extends TIdentifiable> {
     this.createProps = properties.create;
     this.updateProps = properties.update;
     this.deleteProps = properties.delete;
+    this.getPostProcess = properties.getPostProcess;
   }
 
   async getAll(args: IArgs<T>) {
@@ -57,7 +60,7 @@ export class CRUD<T extends TIdentifiable> {
   }
 
   async getItem({ res, params }: IArgs<T>) {
-    if (this.getItemProps) {
+    if (this.getItemProps !== null) {
       const id = Number(params.id);
 
       if (!id) {
@@ -70,9 +73,7 @@ export class CRUD<T extends TIdentifiable> {
         return Utils.error(res, 400, 'item');
       }
 
-      const { data } = item;
-
-      return Utils.success(res, { ...data, entityTitle: this.getItemProps.title });
+      return Utils.success(res, item.data);
     }
   }
 
@@ -155,13 +156,16 @@ export class CRUD<T extends TIdentifiable> {
 
     if (this.getProps?.extraProps) {
       entities.forEach((entity) => {
-        this.getProps?.extraProps.forEach((prop) => {
+        this.getProps?.extraProps?.forEach((prop) => {
           delete entity[prop];
         });
       });
     }
 
-    return { success: true, data: entities };
+    return {
+      success: true,
+      data: this.getPostProcess ? this.getPostProcess(entities) : entities,
+    };
   }
 
   private async serviceGetItem(id: number): Promise<TServiceActionResponse<T>> {
@@ -173,7 +177,16 @@ export class CRUD<T extends TIdentifiable> {
       return { success: false };
     }
 
-    return { success: true, data: item };
+    if (this.getProps?.extraProps) {
+      this.getProps.extraProps.forEach((prop) => {
+        delete item[prop];
+      });
+    }
+
+    return {
+      success: true,
+      data: this.getPostProcess ? this.getPostProcess([item])[0] : item,
+    };
   }
 
   private async serviceCreate(

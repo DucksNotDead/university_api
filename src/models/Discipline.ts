@@ -1,8 +1,8 @@
 import { Dictionary, Identifiable } from './_base';
-import { number, z } from 'zod';
+import { z } from 'zod';
 
 export const Discipline = Dictionary.extend({
-  department_id: number(),
+  department_id: z.number(),
 });
 
 export const DisciplineCreateDto = Discipline.omit({ id: true });

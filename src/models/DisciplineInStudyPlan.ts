@@ -1,14 +1,13 @@
 import { EStudyType } from './enums/StudyTypeEnum';
 import { Identifiable } from './_base';
-import { number, z } from 'zod';
-import { number2, number3 } from '../shared/dataTypes';
+import { z } from 'zod';
 
 export const DisciplineInStudyPlan = Identifiable.extend({
-  discipline_id: number(),
-  study_plan_id: number(),
-  semester: number2(),
+  discipline_id: z.number(),
+  study_plan_id: z.number(),
+  semester: z.number(),
   type: z.nativeEnum(EStudyType),
-  hours: number3(),
+  hours: z.number(),
 });
 
 export const DisciplineInStudyPlanCreateDto = DisciplineInStudyPlan.omit({ id: true });

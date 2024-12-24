@@ -15,8 +15,7 @@ export const TypeGuards = {
     return (
       typeof user.id === 'number' &&
       typeof user.login === 'string' &&
-      typeof user.name === 'string' &&
-      typeof user.surname === 'string' &&
+      typeof user.fio === 'string' &&
       this.isRole(user.role)
     );
   },

@@ -1,11 +1,10 @@
 import { Identifiable } from './_base';
-import { number, string, z } from 'zod';
-import { numberYear } from '../shared/dataTypes';
+import { z } from 'zod';
 
 export const StudyPlan = Identifiable.extend({
-  speciality_id: number(),
-  year: numberYear(),
-  description: string(),
+  speciality_id: z.number(),
+  year: z.number(),
+  description: z.string(),
 });
 
 export const StudyPlanCreateDto = StudyPlan.omit({ id: true });

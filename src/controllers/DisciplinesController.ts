@@ -15,7 +15,6 @@ const scopeFilterFn: TScopeFilterFn = (args) => ({
 
 @Controller('/disciplines', 'DepartmentHead', {
   repository: Disciplines,
-  getItem: { title: { key: 'name', prefix: 'Дисциплины' } },
   create: { dto: DisciplineCreateDto },
   update: { dto: DisciplineUpdateDto },
 })

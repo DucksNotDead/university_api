@@ -1,13 +1,15 @@
 import { Identifiable } from './_base';
-import { number, string, z } from 'zod';
+import { z } from 'zod';
 
 export const Syllabus = Identifiable.extend({
-  discipline_id: number(),
-  standard_id: number(),
-  aims: string(),
-  competencies: string(),
-  requirements: string(),
-  position_in_scheme: string(),
+  discipline_id: z.number(),
+  standard_id: z.number(),
+  aims: z.string(),
+  competencies: z.string(),
+  requirements: z.string(),
+  position_in_scheme: z.string(),
+  approved: z.boolean(),
+  year: z.number()
 });
 
 export const SyllabusCreateDto = Syllabus.omit({ id: true });

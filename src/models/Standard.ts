@@ -1,8 +1,8 @@
 import { Identifiable } from './_base';
-import { number, z } from 'zod';
+import { z } from 'zod';
 
 export const Standard = Identifiable.extend({
-  discipline_id: number(),
+  discipline_id: z.number(),
   themes: z.string(),
   contents: z.string(),
 });
